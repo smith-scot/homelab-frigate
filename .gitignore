@@ -1,0 +1,4 @@
+# Whitelist: only these files are tracked. Never add .env or secrets/.
+*
+!.gitignore
+!NOTES.md
