@@ -56,3 +56,6 @@ Plan: steps 1 (deploy setup + guard) and 2 (add read-only `stats` subcommand). H
 - Deploy key ~/.ssh/id_ed25519_github_homelab_frigate (repo-scoped, write). SSH alias: github-homelab-frigate.
 - ~/ai-admin is the git repo. .gitignore is a WHITELIST (only NOTES.md + .gitignore tracked) so .env/secrets/ can never be committed.
 - Commit identity: smith-scot <47512570+smith-scot@users.noreply.github.com>.
+
+## 2026-11-14 — Climate (Home Assistant thermostat)
+- Moved to ~/projects/homelab-homeassistant/Climate/NOTES.md (repo smith-scot/homelab-homeassistant).
