@@ -59,3 +59,24 @@ Plan: steps 1 (deploy setup + guard) and 2 (add read-only `stats` subcommand). H
 
 ## 2026-11-14 — Climate (Home Assistant thermostat)
 - Moved to ~/projects/homelab-homeassistant/Climate/NOTES.md (repo smith-scot/homelab-homeassistant).
+
+## 2026-11-14 — VM 200 (Windows11) "Quicken reset" investigation (read-only, Audit token)
+- No snapshots, no rollback/restore tasks ever; disk vm-200-disk-1 unchanged since qmcreate 08-02. Last shutdown Sun 11-08 16:21, start Wed 11-11 06:30 (uptime ~76h). Guest: Win11 build 26200, hostname PROX-WIN11-VM, guest agent OK.
+- qmstart warning: virtio-win 0.1.285 ISO "known to cause issues" (PVE wiki).
+- Backups of VM 200 exist: backup-nas vma.zst 11-08/09/10 (03:00 job), PBS pbs-backups nightly 02:00 from 11-11 (11-11..11-14). Audit token can't list storage content (needs Datastore.Audit) — confirmed via task logs.
+- Conclusion so far: cause is inside Windows/Quicken, not Proxmox. Waiting on user for symptoms.
+- Laptop access: user's laptop scott-HP-Laptop-17 = 192.168.100.201. Key ~/.ssh/id_ed25519_laptop_screenshots (alias laptop-screenshots), forced command ~/.local/bin/claude-screenshots on laptop: only `list` / `get <file>` in ~/Pictures/Screenshots, from= VM IP only. Verified shell is refused. Fetched copies in ~/inbox/laptop/.
+- Screenshot 11-14 10:16: Quicken Classic Deluxe still installed, shows "Select your existing data file" -> Quicken lost the path to its .QDF (data likely intact). OneDrive tray icon shows crossed-out cloud (signed out/paused) -> suspect Documents redirected to OneDrive.
+- Screenshot 11-14 13:18: Quicken error "Your copy of Quicken does not contain all the required files. (TAX.SCD is missing) Please reinstall Quicken." over the select-data-file screen. Install damaged; QDF data likely still fine. Fetched to ~/inbox/laptop/2026-11-14_13-18-23/.
+- Quicken action items (user, on Windows): (1) don't create a new data file; (2) find + back up all *.QDF first; (3) Settings > Apps > Quicken > Modify/Repair, else reinstall from Quicken account; (4) File > Open existing .QDF. Check OneDrive sign-in/Documents redirect if the QDF isn't found.
+
+## 2026-11-14 — OPNsense router build (PAUSED 2026-11-15, waiting on access point)
+- Moved to ~/projects/homelab-opnsense (repo smith-scot/homelab-opnsense, private; deploy key ~/.ssh/id_ed25519_github_homelab_opnsense, SSH alias github-homelab-opnsense). Docs: hardware.md, plan.md, NOTES.md. BIOS photo stays in ~/inbox/laptop/20261114_182326/ (GPS EXIF, not committed).
+
+## 2026-11-17 — Jellyfin: add BJJ library (/mnt/data/media/bjj)
+- Jellyfin at 192.168.100.6:8096 ("jellyfin6", 12.2.0). No Jellyfin creds; lxc100-frigate is forced-command only.
+- User chose option 3: broader SSH to LXC 100. Generated ~/.ssh/id_ed25519_lxc100_docker, SSH alias lxc100-docker (user aiadmin-docker, docker group, key from= 192.168.100.224). Waiting on user to create the account on LXC 100.
+- aiadmin-docker account created by user on LXC 100; verified (uid 1001, docker group). Jellyfin = linuxserver/jellyfin container, /mnt/data/media -> /media, config /opt/docker/configs/jellyfin.
+- DB backup: /opt/docker/configs/jellyfin/data/data/jellyfin.db.pre-ai-admin-20261117 (sqlite backup API). Temp API key 'ai-admin-temp' inserted (via throwaway frigate-image python container, no sqlite3 on host), used, then DELETED via API (verified 401). Token never written outside /tmp (shredded).
+- ADDED library "BJJ", type homevideos, path /media/bjj, realtime monitor on. 915/915 video files indexed; full library scan was running at time of change.
+- Undo: Dashboard > Libraries > BJJ > Remove (does not delete files).
