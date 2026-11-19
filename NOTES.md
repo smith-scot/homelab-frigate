@@ -80,3 +80,24 @@ Plan: steps 1 (deploy setup + guard) and 2 (add read-only `stats` subcommand). H
 - DB backup: /opt/docker/configs/jellyfin/data/data/jellyfin.db.pre-ai-admin-20261117 (sqlite backup API). Temp API key 'ai-admin-temp' inserted (via throwaway frigate-image python container, no sqlite3 on host), used, then DELETED via API (verified 401). Token never written outside /tmp (shredded).
 - ADDED library "BJJ", type homevideos, path /media/bjj, realtime monitor on. 915/915 video files indexed; full library scan was running at time of change.
 - Undo: Dashboard > Libraries > BJJ > Remove (does not delete files).
+
+## 2026-11-18 — Doorbell (front_door) notifications: diagnosis (read-only)
+- User complaint: HA notification is a small thumbnail you can't zoom; only the front approach zone notifies, not the porch/door; wants this to work for package deliveries.
+- Cause: the only notifier is automation 1794361963473 "Frigate - Front Approach Person Alert". It triggers only on binary_sensor.front_approach_person_occupancy and attaches image.front_door_person, which is a 270x270 crop taken from the 640x480 detect stream. Tapping it opens /lovelace.
+- Zones do work: since 11-11, front_porch_person_occupancy went on 13x and front_approach 23x. The porch just never notifies.
+- Sample crop: a "person" at 52% out at the street. Approach-zone alerts include far-away / low-confidence hits.
+- Reolink integration has full-res entities that are disabled by default: camera.front_door_snapshots_clear, camera.front_door_clear, camera.front_door_balanced. Doorbell press = binary_sensor.front_door_visitor.
+- HA has no external_url and Nabu Casa is not logged in, so notification images probably don't load when the phone is away from home.
+- The stock Coral COCO model has no "package" label (Frigate+ has one).
+- User choices: (1) notify on approach + porch: YES; (2) raise approach confidence: YES (see below); (3) delivery alert: SKIP; (4) remote: user has Tailscale.
+- Backups: ~/ai-admin/notes/backup-2026-11-18-doorbell/ (old automation JSON, redacted Frigate config).
+- Enabled camera.front_door_snapshots_clear (Reolink, 2560x1920) and reloaded the Reolink entry.
+- /local returned 404 because /config/www did not exist at HA startup. check_config valid -> HA restarted 07:24 CT (back in ~50 s). /local now serves.
+- Automation 1794361963473 (entity id unchanged, alias now "Frigate - Front Door Visitor Alert"): trigger MQTT frigate/reviews. Fires on camera=front_door, severity=alert, type=new, plus once more on the update where front_porch is first added (same tag, so the notification is replaced: "at the front door"). Saves a full-res snapshot to /config/www/doorbell/<ts>-<random15>.jpg. Notification image = /local/...; tap opens http://192.168.100.214/local/... (zoomable in the browser). Buttons: View clip (HA Frigate proxy clip.mp4 of first detection), Open Frigate (https://192.168.100.6:8971/review?id=...).
+- New automation 1795010000001 "Doorbell - Button Pressed": binary_sensor.front_door_visitor on -> full-res snapshot + high-priority notification.
+- Tested with synthetic frigate/reviews MQTT messages (id *-aitest): new + update notified OK, end ignored. A real review (1795008341.731767-7p5zqg) arrived during the test with the same payload shape. Gotcha: HA template sandbox caps range() at 100000.
+- (2) NOT applied: raising the person threshold for front_door needs a Frigate config edit. The config has literal creds and show-config is redacted -> needs root. Also, the 52% "street person" image came from image.front_door_person (latest person anywhere in frame, not from the zone), so the zone alerts may already be fine. Revisit if alerts are noisy.
+- Open: /config/www/doorbell has no automatic cleanup yet (~300 KB per alert). /local files are unauthenticated (LAN/tailnet only; names have 15 random digits).
+- Seen in log: HA stream worker "Connection refused rtsp://192.168.100.6:8554/front_door" (Frigate restream for camera.front_door live view). Not investigated.
+- Undo: re-POST the backup automation JSON to /api/config/automation/config/1794361963473; delete automation 1795010000001.
+- 2026-11-18 19:07 User confirmed the new notifications work on their phone.
